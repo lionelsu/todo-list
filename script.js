@@ -7,8 +7,10 @@ const saveTasksBtn = document.querySelector('#salvar-tarefas');
 
 function factorySelector() {
   const taskItem = document.querySelectorAll('li');
+  const selected = document.querySelector('.selected');
   return {
     taskItem,
+    selected,
   };
 }
 
@@ -21,20 +23,21 @@ function completeTask(event) {
 function markTask(event) {
   const { taskItem } = factorySelector();
   taskItem.forEach((task) => {
+    const taskClass = task.classList;
+    const taskEventClass = event.target.classList;
     const taskBG = task.style;
     const taskEvent = event.target.style;
     taskBG.backgroundColor = '';
     taskEvent.backgroundColor = 'gray';
+    taskClass.remove('selected');
+    taskEventClass.add('selected');
   });
 }
 
 // Função auxiliar
-function createNewTask(text, completed) {
+function createNewTask(text) {
   const newTask = document.createElement('li');
   newTask.textContent = text.trim();
-  if (completed) {
-    newTask.classList.add('completed');
-  }
   // 7 - aqui os escutadores estão sendo populados diretamente nos elementos.
   newTask.addEventListener('click', markTask);
   // 9
@@ -45,7 +48,7 @@ function createNewTask(text, completed) {
 // 5 -, ao clicar nesse botão, um novo item deverá ser criado ao final da lista e o texto do input deve ser limpo
 function createTask() {
   if (taskInput.value !== '') {
-    const newTask = createNewTask(taskInput.value, false);
+    const newTask = createNewTask(taskInput.value);
     taskInput.value = '';
     // 6 - Adicione três novas tarefas e ordene todas as tarefas da lista por ordem de criação
     taskList.appendChild(newTask);
@@ -67,11 +70,36 @@ function removeCompleted() {
   taskItem.forEach((task) => {
     const isCompleted = task.classList.contains('completed');
     if (isCompleted) {
-      taskList.removeChild(task);
+      task.remove();
     }
   });
 }
 removeCompletedBtn.addEventListener('click', removeCompleted);
+
+// 13 - Adicione dois botões, que permitam mover o item selecionado para cima ou para baixo na lista de tarefas
+const btnUp = document.querySelector('#mover-cima');
+const btnDown = document.querySelector('#mover-baixo');
+function moveItemUp() {
+  const { selected } = factorySelector();
+
+  if (selected && selected.previousElementSibling) {
+    const taskOnTop = selected.previousElementSibling;
+    const parentBlock = selected.parentNode;
+    parentBlock.insertBefore(selected, taskOnTop);
+  }
+}
+btnUp.addEventListener('click', moveItemUp);
+
+function moveItemDown() {
+  const { selected } = factorySelector();
+
+  if (selected && selected.nextElementSibling) {
+    const taskOnBottom = selected.nextElementSibling.nextElementSibling;
+    const parentBlock = selected.parentNode;
+    parentBlock.insertBefore(selected, taskOnBottom);
+  }
+}
+btnDown.addEventListener('click', moveItemDown);
 
 // 12 - Adicione um botão que salva o conteúdo da lista. Se você fechar e reabrir a página, a lista deve continuar no estado em que estava
 function saveList() {
@@ -82,6 +110,7 @@ function saveList() {
       text: task.textContent,
       completed: task.classList.contains('completed'),
       backgroundColor: task.style.backgroundColor,
+      selected: task.classList.contains('selected'),
     };
     savedTaskList.push(taskObj);
   });
@@ -89,6 +118,16 @@ function saveList() {
   const stg = localStorage;
   stg.setItem('todoList', JSON.stringify(savedTaskList));
 }
+
+// 14 - Adicione um botão que, quando clicado, remove o item selecionado
+const btnRemoveSelected = document.querySelector('#remover-selecionado');
+function removeSelected() {
+  const { selected } = factorySelector();
+  if (selected) {
+    selected.remove();
+  }
+}
+btnRemoveSelected.addEventListener('click', removeSelected);
 
 function loadList() {
   const restoreList = JSON.parse(localStorage.getItem('todoList')) || [];
@@ -100,6 +139,9 @@ function loadList() {
     if (task.completed) {
       newTask.classList.add('completed');
     }
+    if (task.selected) {
+      newTask.classList.add('selected');
+    }
 
     newTask.addEventListener('click', markTask);
     newTask.addEventListener('dblclick', completeTask);
@@ -107,7 +149,6 @@ function loadList() {
     taskList.appendChild(newTask);
   });
 }
-
 saveTasksBtn.addEventListener('click', saveList);
 
 window.onload = () => {
